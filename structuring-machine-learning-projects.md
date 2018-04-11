@@ -1,23 +1,25 @@
-# ML Strategy
+# Structuring Machine Learning Projects
 
-https://www.coursera.org/learn/machine-learning-projects
+Notes while working through Coursera's [Structuring Machine Learning Projects course](https://www.coursera.org/learn/machine-learning-projects) by Andrew Ng.  **Paraphrased heavily and very incomplete.**
 
-### Andrew Ng Bio
+### Author Bio
 
-There a lot of 
+"[Andrew Ng](http://www.andrewng.org/) is VP & Chief Scientist of Baidu; Co-Chairman and Co-Founder of Coursera; and an Adjunct Professor at Stanford University."
 
 ## Overview
 
-The course was about how to structure machine learning projects to be successful.  For example, you start a project and it isn't performing as expected.
+The course provides guidance on how to structure machine learning projects to successfully meet goals in the most effective way possible.
 
-- collect more data
-- collect a more diverse training set
-- train longer
-- add dropout
-- add L2 regularization
-- etc etc
+It's common to run into issues when machine learning.  For example, you start a project and it isn't performing as expected.  What next?
 
-If you choose these techniques in a naive way, you'll waste a lot of time.
+- Collect more data
+- Collect a more diverse training set
+- Train longer
+- Add dropout
+- Add L2 regularization
+- Apply N additional optimizations.
+
+How, when and where should you apply these optimizations?
 
 The course provides strategies for choosing optimization techniques.
 
@@ -31,7 +33,7 @@ Examples of common parameters in real-life:
 - both are easy to tune, for example the steering wheel controls your direction
 - but imagine the steering wheel was instead controlled by 0.3 * angle - 0.8 * speed, controlling the car is much harder
 - so you want a control that affects one dimension only, either speed or direction, not both
-- this seems similar to the concept of [orthogonality](https://en.wikipedia.org/wiki/Orthogonality) in geometry you're tuning paremeters that are affect different axis
+- this seems similar to the concept of [orthogonality](https://en.wikipedia.org/wiki/Orthogonality) in geometry you're tuning parameters that are affect different axis
 
 ### Relationship to stages of ML training, and knobs
 
@@ -56,12 +58,12 @@ Examples of common parameters in real-life:
 - A single real number evaluation metric is crucial for fast iteration
 - Machine learning is an empirical process, Idea -> Experiment -> Code
 - [Precision and Recall](https://en.wikipedia.org/wiki/Precision_and_recall) are two possible metrics for evaluating ML, but if you use them both, it's harder to compare experiments
-- Define a new metric that compines them, for example [F1 score](https://en.wikipedia.org/wiki/F1_score), and use that for the comparison
+- Define a new metric that combines them, for example [F1 score](https://en.wikipedia.org/wiki/F1_score), and use that for the comparison
 
 ### Optimizing vs Satisficing
 
 - If training speed is a consideration (and it often is), you can combine your metric with run-time
-- This can be unweildy and hard to average, so converting run-time to a threshold of say 100ms could be better
+- This can be unwieldy and hard to average, so converting run-time to a threshold of say 100ms could be better
 - *Optimizing* are metrics like accuracy, *Satisficing* are metrics that are considered minimums for successful models
 - So 90% accuracy and a minimum 100ms runtime in combination could be a good set of metrics for evaluating models after you change hyper-parameters
 - In general choose 1 optimizing metrics, and 1 or more satisficing metrics
@@ -78,7 +80,7 @@ Examples of common parameters in real-life:
 - But if you have a million examples, it's much more reasonable to use larger fractions, like 98% train
 - In Andrew's parlance, compared to the [Wikipedia](https://en.wikipedia.org/wiki/Training,_test,_and_validation_sets) definition:
     + test = test (fitting the model)
-    + dev = validation (tuning hyper-paremeters)
+    + dev = validation (tuning hyper-parameters)
 - Some projects skip test and just use dev/test, which may be acceptable given requirements
 
 #### When to change?
@@ -91,8 +93,8 @@ Examples of common parameters in real-life:
 
 ## Comparing with Humans
 
-- easily understandable metric for comparision
-- often after surpasing human performance, progress on the algorithm slows down to the [Bayes optimal error](https://en.wikipedia.org/wiki/Bayes_error_rate), i.e. the best theoretical performance
+- easily understandable metric for comparison
+- often after surpassing human performance, progress on the algorithm slows down to the [Bayes optimal error](https://en.wikipedia.org/wiki/Bayes_error_rate), i.e. the best theoretical performance
 - one reason: people are really good at a lot of tasks
 - another reason: humans can label data if performance <= human performance, but can't after
     - humans also can't easily judge [bias and variance](https://en.wikipedia.org/wiki/Bias%E2%80%93variance_tradeoff) for super-human performance
@@ -101,23 +103,23 @@ Examples of common parameters in real-life:
 
 ### Bias
 
-- If human accuracy is 99% and model training 8%, and dev error 10% this is could be considered an indicator of high bias / underfitting.  One solution could be increasing the data set
+- If human accuracy is 99% and model training 8%, and dev error 10% this is could be considered an indicator of high bias / under-fitting.  One solution could be increasing the data set
 - If human accuracy is 97.5%, training 8% and dev 10%, it may indicate the test data doesn't reflect how messy real-world data is.  Tune for variance
-- Andrew describes difference between human / bayes accuracy and training error as *avoidable bias* (the model is overfitting on the training set), between training error and dev error *avoidable variance* (the model is failing to recognize new data, failing to generalize).
+- Andrew describes difference between human / bayes accuracy and training error as *avoidable bias* (the model is over-fitting on the training set), between training error and dev error *avoidable variance* (the model is failing to recognize new data, failing to generalize).
 
 ### More precise definition of human performance
 
 - Given medical image diagnosis, an untrained human has 10% error, a doctor has 1% error.  What is human performance?  In this case the doctor is closer to Bayes optimal error so that's a good choice
 - For cat recognition, the definition can be much looser
-- What value is chosen directly influences avoidable bias and varience, and which to target when improving the model
+- What value is chosen directly influences avoidable bias and variance, and which to target when improving the model
 
 ### Superhuman Performance
 
-- When human performance > training error, avoidable bias and varience harder to judge.  What's the real Bayes error rate?  Which one to focus on?
-- Online advertising, logistics, product recommendations, loan prediction examples of problem domains where ML has achieved super-human performance
+- When human performance > training error, avoidable bias and variance harder to judge.  What's the real Bayes error rate?  Which one to focus on?
+- On-line advertising, logistics, product recommendations, loan prediction examples of problem domains where ML has achieved super-human performance
 - Usual these are domains with lots of structural data, vs natural perception tasks like image recognition
 
-## Finale: Improving Model Perfomance
+## Finale: Improving Model Performance
 
 #### Reducing Avoidable Bias
 
@@ -127,7 +129,7 @@ Examples of common parameters in real-life:
     + [RMSProp](http://ruder.io/optimizing-gradient-descent/index.html#rmsprop
     + [Adam](http://ruder.io/optimizing-gradient-descent/index.html#adam)
 - Use a bigger training set
-- Change neural-network architecture (RNN, CNN, etc), hyperparameters search
+- Change neural-network architecture (RNN, CNN, etc), hyper-parameters search
 
 #### Reducing Avoidable Variance
 

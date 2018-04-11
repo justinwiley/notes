@@ -12,8 +12,8 @@ A work-in-progress, there may be spelling, grammatical and factual errors of eve
 
 - [General Machine Learning Notes](machine-learning-notes.md)
 
-### deeplearning.ai courses
+### Course Notes
 
-- [Machine Learning Strategy](ml-strategy.md)
+- [Structuring Machine Learning Projects](structuring-machine-learning-projects.md)
 
 [License: Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)] (https://creativecommons.org/licenses/by-nc/4.0/)
