@@ -1,6 +1,6 @@
 # Structuring Machine Learning Projects
 
-Notes while working through Coursera's [Structuring Machine Learning Projects course](https://www.coursera.org/learn/machine-learning-projects) by Andrew Ng.  **Paraphrased heavily and very incomplete.**
+Notes while working through Coursera's [Structuring Machine Learning Projects course](https://www.coursera.org/learn/machine-learning-projects) by Andrew Ng.  **Warning: heavily paraphrased and incomplete.**
 
 ### Author Bio
 
