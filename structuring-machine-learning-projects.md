@@ -23,6 +23,12 @@ How, when and where should you apply these optimizations?
 
 The course provides strategies for choosing optimization techniques.
 
+### In general this involves the following framework:
+
+1. Setup smart metrics to measure your progress
+2. Build initial system quickly, favoring speed over complexity
+3. Use Bias / Variance analysis, and Error Analysis to prioritize improvements. Iterate!
+
 ## Orthogonalization
 
 *What to tune to achieve what effect.*
@@ -142,3 +148,82 @@ Examples of common parameters in real-life:
 ### Flight-Simulator Examples
 
 Andrew provides a few examples to test these concepts out.  Refer to the course for more information.
+
+## Error Analysis
+
+- You've built an image classifier, you've got 90% accuracy on a wide range of images
+- Someone notices one way it's misclassifying is saying dogs are cats
+- Should you focus on improving dog classification?
+    + Collect more dog pictures
+    + Change algorithm
+    + etc?
+- First look at how import and dog classification is to the importance of the overall algorithm
+- If 5% of mislabeled images are dogs, totally eliminating it will only improve accuracy by 5% (i.e. 10% becomes 9.5%)
+
+### Multi-Category Analysis
+
+- You look at other sources of mis-categorization, and find its messing up on Zebras and blurry images
+- You can construct a table like: 
+
+| Misclassified Image | Dog | Zebra | Blurry |
+| --- | --- | --- | --- |
+| 1 |✓| |
+|2 | |✓| |
+|3| |✓|✓|
+| N | ... | | |
+| Total | 8% | 43% | 61% |
+
+- So clearly some mis-classifications are more important to improve than others
+
+### Incorrectly Labeled Examples
+
+- What if your labeled images have mistakes, i.e. dogs are labeled as cats etc
+- Deep learning algorithms are pretty resilient to this, if the errors are *reasonably random*
+- Systematic errors, where all white dogs are labeled as cats for example, are much more problematic
+- You can update your errors table with incorrect labels:
+
+| Misclassified Image | Dog | Zebra | Blurry | Incorrect Labels |
+| --- | --- | --- | --- | --- |
+| 1 |✓| ||
+|2 | |✓| ||
+|3| |✓|✓||
+| N | ... | | ||
+| Total | 8% | 43% | 61% |6%|
+
+- Once again, if incorrectly labeled errors don't impact overall error, don't focus on it
+- Also evaluate the dev and test sets as well, to make sure they have the same distribution
+- Consider examining examples your algorithm got right (if feasible)
+- If you correct labels in the train set only, because it's must smaller, that's ok in practice
+- *Manually reviewing examples is no-fun, but important!*  A few hours spent reviewing data can greatly improve results
+
+### Building Your First System (Putting it all together)
+
+- Build quickly and then iterate
+- Example: speech recognition, many directions you can go in
+    + Eliminating noisy input
+    + Recognizing different accents
+    + Distance from microphone
+    + Stuttering
+- Which one is the most important
+
+#### Recommendations
+
+1. Setup dev/test set, metric
+2. Build initial system quickly
+3. Use Bias / Variance analysis, and error analysis to prioritize
+
+If you're tackling a new problem for the first time, don't make the system too complicated.  If it's a very well known problem like face-recognition, it may make sense to review existing literature and get more complicated from the get-go.
+
+### Mismatched Training and Test Data
+
+- Often, labeled training data is hard to come by, and differs from real-world data distributions
+- If your train and test sets have different distributions, there are subtle issues
+- For example, high-resolution images with labels, but real-world images are from mobile and lower-resolution
+- If you have a lot of high-resolution images and a few low-resolution images you can
+- One approach is to combine them, and shuffle them for training.  This results in the same distribution for dev and test
+- But the distribution is still wrong! Your dev and test are heavily biased towards high-resolution
+- Andrew suggestion instead:
+    + Train - all high resolution, a few from low-resolution
+    + Dev / test - all low resolution
+- So the target your aiming at is the real distribution
+- The downside of course is training distribution is different from dev / test, but in the long run this approach is better
