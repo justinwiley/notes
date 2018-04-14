@@ -214,16 +214,284 @@ Andrew provides a few examples to test these concepts out.  Refer to the course 
 
 If you're tackling a new problem for the first time, don't make the system too complicated.  If it's a very well known problem like face-recognition, it may make sense to review existing literature and get more complicated from the get-go.
 
-### Mismatched Training and Test Data
+## Mismatched Training and Test Data
 
 - Often, labeled training data is hard to come by, and differs from real-world data distributions
 - If your train and test sets have different distributions, there are subtle issues
 - For example, high-resolution images with labels, but real-world images are from mobile and lower-resolution
+
+| Type | # |
+| ------------- | ------------- |
+| High-resolution Web Images | 200,000 |
+| Low-resolution Mobile Images | 10,000 |
+
 - If you have a lot of high-resolution images and a few low-resolution images you can
 - One approach is to combine them, and shuffle them for training.  This results in the same distribution for dev and test
+
+| Training Set | Dev Set | Test Set |
+| ------------- | ------------- | ------------- |
+| 200,000 (high and low resolution images) ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ | 10,000 (high and low resolution images) ▬▬▬▬ | 10,000 (high and low resolution images) ▬▬▬▬ |
+
 - But the distribution is still wrong! Your dev and test are heavily biased towards high-resolution
 - Andrew suggestion instead:
     + Train - all high resolution, a few from low-resolution
     + Dev / test - all low resolution
+
+| Training Set | Dev Set | Test Set |
+| ------------- | ------------- | ------------- |
+| 200,000 (high-resolution) ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ | 10,000 (low-resolution) ▬▬▬▬ | 10,000 (low-resolution) ▬▬▬▬ |
+
 - So the target your aiming at is the real distribution
 - The downside of course is training distribution is different from dev / test, but in the long run this approach is better
+
+### Bias and Variance With Mis-Matched Data
+
+In the cat-classifier example:
+
+| Type | Error |
+| ------------- | ------------- |
+| Training error | 1% |
+| Dev error | 10% |
+
+- Create a new set called the *Training-dev set*, same distribution as test, but not used for training.
+
+| Training Set | Train-dev | Dev Set | Test Set |
+| ------------- | ------------- | ------------- |
+| ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ | ▬▬▬▬ | ▬▬▬▬ | ▬▬▬▬ |
+
+- When you evaluate the model on training-dev as well:
+
+| Type | Error |
+| ------------- | ------------- |
+| Training error | 1% |
+| Training-dev error | 9% |
+| Dev error | 10% |
+
+- The training set obviously doesn't contain dev data.  But when the model is run on a mix of dev data, error shoots up.  This indicates a *variance* problem
+- Even though it does well on the train set, it's failing to generalize
+
+#### More Examples:
+
+| Type | Error |
+| ------------- | ------------- |
+| Training error | 1% |
+| Training-dev error | 1.5% |
+| Dev error | 10% |
+
+- This is an example of a data-mismatch problem
+
+| Type | Error |
+| ------------- | ------------- |
+| Human / Bayes error | 0% |
+| Training error | 10% |
+| Training-dev error | 11% |
+| Dev error | 12% |
+
+- Lots of avoidable bias
+
+| Type | Error |
+| ------------- | ------------- |
+| Human / Bayes error | 0% |
+| Training error | 10% |
+| Training-dev error | 11% |
+| Dev error | 20% |
+
+- Avoidable bias, data mismatch
+
+#### In-General
+
+| Type | Error | Type |
+| ------------- | ------------- | ------------- |
+| Human / Bayes error | 4% | Avoidable bias ↓ |
+| Training error | 7% |Variance ↓ |
+| Training-dev error | 10% |Data mis-match ↓ |
+| Dev error | 12% |Over-fitting with dev set ↓ |
+| Test error | 12% | |
+
+Over-fitting with the dev set, could be corrected by getting more dev set data.
+
+### Addressing Data-Mismatch
+
+- It's hard, no systematic way to do this
+- Manual error analysis can help, what's the difference between dev / test
+    + Maybe it's noisy (for speech recognition, maybe it can't recognize car noise)
+    + Mis-recognizing specific items (like street numbers)
+- You can simulate this data, for example mixing samples of car noise into training utterances
+- If there's not a lot of sample data, you can end up over fitting to that, for example 100,000 hour of utterances and 1 hour of car noise
+- The solution is to add more car noise samples
+
+#### Common Issues
+
+- You're working on car recognition, and have limited examples
+- So you get a video game with cars, and now you have unlimited 
+- But if there are only 20 types of cars in the video game, it will probably over-fit to these 20
+
+## Learning from Multiple Tasks
+
+### Transfer learning!
+
+- **Transfer learning!**  Use a model on general image recognition, re-purpose it to a different task like radiology
+
+Given an image recognition model (x general images, y classification):
+
+|     |     |     |     |     |     |     |     |     |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|     |     |     | ◻   | ◻   |     |     |     |     |
+|     | ◻   | ◻   | ◻   | ◻   | ◻   |     |     |     |
+| x ->  | ◻   | ◻   | ◻   | ◻   | ◻   | ◻   | -> y   |     |
+|     | ◻   | ◻   | ◻   | ◻   | ◻   |     |     |     |
+|     |     |     | ◻   | ◻   |     |     |     |     |
+
+Delete output layer, weights feeding into the last layer.  Randomly initialize weights for the last layer. 
+
+|     |     |     |     |     |     |     |     |     |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|     |     |     | ◻   | ◻   |     |     |     |     |
+|     | ◻   | ◻   | ◻   | ◻   | ◻   |     |     |     |
+| x ->  | ◻   | ◻   | ◻   | ◻   | ◻   | X   | -> y   |     |
+|     | ◻   | ◻   | ◻   | ◻   | ◻   |     |     |     |
+|     |     |     | ◻   | ◻   | ^ randomize   |     |     |     |
+
+- Lock all the layers except the last one
+- Feed in a new data set, where x are radiology images, and y are diagnosis.  This is called *pre-training*
+- If you have more data, un-lock additional layers for more accuracy
+- The initial weights are considered to be *pre-training*
+- You can also add additional layers
+- Learning from a larger data set helps with general feature recognition
+
+#### When does transfer learning make sense?
+
+- You have a pre-trained model on a similar problem
+- You have limited data for the specific problem you're working on
+- But if the reverse is true, you have more radiology images that cats and dogs for example, the value of the transfered-model is low
+
+In general:
+
+- when Task A and Task B have the same input x
+- You have more data for Task A than Task B
+- You suspect low-level features for A could be useful for B
+
+### Multi-Task Learning
+
+- Example: you're building a self-driving car.  It will need to detect:
+    + Pedestrians
+    + Other cars
+    + Stop signs
+    + Traffic lights
+
+In earlier examples 1 image resulted in one classification:
+
+|| x(i) | y(i) |
+| ------------- | ------------- | ------------- |
+| Image 1 | 1 |
+| Image 2 | 0 |
+
+
+In multi-task, 1 image results in multiple classifications.
+
+|| x(i) | y(i) |
+|-------------| ------------- | ------------- |
+|| Pedestrians | 0 |
+|| Cars | 1 |
+|| Stop signs | 1 |
+|| Traffic Lights | 0 |
+
+```
+Y = [y1, y2 .. yn], where y is a vector (4,n)
+```
+
+You can update your neural-architecture to add a 4 dimensional output layer:
+
+|     |     |     |     |     |     |     |     |     |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+|     |     |     | ◻   | ◻   |     |     |     |     |
+|     | ◻   | ◻   | ◻   | ◻   | ◻   | ◻   | -> pedestrian    |     |
+| x ->  | ◻   | ◻   | ◻   | ◻   | ◻   | ◻   | -> car  |  -> y   |
+|     | ◻   | ◻   | ◻   | ◻   | ◻   | ◻   | -> stop sign    |     |
+|     |     |     | ◻   | ◻   |     | ◻   | -> traffic light    |     |
+
+
+The loss function is the sum of the losses for all predictions for each of the four categories:
+
+```
+    m   4
+1/m ∑   ∑
+    i=1 j=1 
+```
+
+- The loss will be the sum of the components, usual logistic loss
+- Unlike softmax regression which was 1 image to 1 label
+- You have 1 image to multiple labels
+- *This will work even if some of the images don't contain all the objects.*  In that case when doing the summation, skip adding the category that's missing from the image
+
+#### When to use Multi-Task Learning
+
+- You could just train 4 networks to recognize each object, and that would perhaps be more accurate
+- But it might not be more accurate, and it would potentially be way more expensive
+- You should use multi-task when amount of data for each lower level feature is similar
+- And multi-task learning requires bigger networks.  If it's big enough, performance should be similar to training a bunch of little networks
+- Multi-task is ideal when features being detected are similar, and the network can use information it has learned about one class to help recognize another
+
+## End-to-End Learning
+
+- Earlier approaches to learning required multiple stages of learning and processing.  Example audio processing:
+
+```
+audio clip -> features -> phonemes -> words -> transcript
+```
+
+End-to-End deep-learning skips this:
+
+```
+audio clip -> transcript
+```
+
+- For smaller data sets (< 10,000 samples maybe), the old approach still dominates
+- For large data sets (> 1,000,000 samples), deep learning dominates
+- For machine translation, there are lots of (x,y) pairs where X is english and Y is french, so E2E works great
+
+### Where E2E is more difficult
+
+- It's easier to do E2E when you can map directly to labeled data
+- For example, recognizing people from headshots is much easier than recognizing them in group photos
+- So in this case, E2E wont work as well as a first step of cropping the group image to get headshots first
+- For determine child's age from X rays you could
+    + Segment out bones from the X ray
+    + Figure out length of each bone
+    + Compare with table of bones length to age
+- If you did E2E, not much labeled data, so not that great
+
+*In general, E2E can help you skip pre-processing and build simpler models, if the data and the domain are appropriate.*
+
+### Pros and Cons of E2E Learning
+
+#### Pros
+
+- Let's the data speak, less human pre-conditions
+    + In the case of speech recognition, people were focusing on phonemes, forcing model to think in that way
+    + But Andrew says "phonemes are a fantasy of linguists", if you let the algorithm to learn whatever it wants to learn, it's overall performance might be better
+- Less hand-designing of components, simpler
+
+#### Cons
+
+- Requires lots of data
+- Sometimes hand-designed components are useful, especially if you have limited data
+- Justin's insight: hand-designed components are like transfer learning from humans to algorithms 😁
+
+#### Applying E2E
+
+- Automated Driving traditional approach
+    + Get video, radar, lidar data
+    + Figure out where the road is, pedestrians, other cars are
+    + Figure out what path to take
+
+```
+image
+radar   ->  cars            -> route    -> steering
+lidar       pedestrians
+
+       deep                motion       control
+       learning            planning     software
+```
+
+- In this case, deep learning is used for categorization, motion planning and control software, customized hand-made components for later pipeline tasks
