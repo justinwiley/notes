@@ -2,6 +2,8 @@
 
 To understand what Kubernetes is, it's useful to understand where it came from, what problems it was designed to solve and how earlier systems tried to tackled those same problems.  Kubernetes started it's life in Google, and was inspired by (at least) two earlier job orchestration projects.  Chief among these was Borg, and Borg's successor, Omega.
 
+I'm basing this analysis off of my interpretation publicly available sources.  I annotate anything I fail to fully understand, or where there is limited source material with a "*?*".
+
 ## Cluster schedulers
 
 All of these frameworks are [*cluster schedulers*](https://medium.com/@copyconstruct/schedulers-kubernetes-and-nomad-b0f2e14a896).
@@ -17,7 +19,7 @@ Cluster schedulers had to be designed in the context of:
 - Encouraging *paralleism* of similar workloads.  [MapReduce](https://research.google.com/archive/mapreduce.html?hl=de) and [Pregel](https://blog.acolyer.org/2015/05/26/pregel-a-system-for-large-scale-graph-processing/) required a reliable, scalable substrate to execute on
 - *Resilience*
 
-What's the difference between a cluster scheduler, and a database?
+*Interesting question: what's the difference between a distributed cluster scheduler, and a distributed database?*
 
 ## Borg
 
@@ -169,27 +171,104 @@ One of Omega's strengths compared to Borg and presumably Kubernetes is it's abil
 
 Kubernetes was developed along with Omega, and was publicly announced in 2014.  1.0 was released in 2015, and became an open-source project.
 
+While Kubernetes is probably simpler, or at least more obviously constructed than Borg, it would be an exaggeration to call it simple.  Understanding all of the primitives, how they collaborate, and how to operationally run Kubernetes and deal with details like [backing up etcd's data](https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/) is not a trivial undertaking.
+
 ### Philosophy
 
-Kubernetes shares Omega's philosophy of avoiding monolithic, top-down schedulers.
-
-"The design of Kubernetes as a combination of microservices and small control loops is an example of control through choreography—achieving a desired emergent behavior by combining the effects of separate, autonomous entities that collaborate."
+"The design of Kubernetes as a combination of micro-services and small control loops is an example of control through choreography—achieving a desired emergent behavior by combining the effects of separate, autonomous entities that collaborate."
 
 - https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/44843.pdf
+
+Kubernetes fundamentally exists to define rules for the game of dividing scarce resources among tasks.  Kubernetes' designers fundamentally agreed with Omega's approach of avoiding monolithic, top-down schedulers, but refined it's consistency primitives ([moving to etc and Raft from Paxos?](https://medium.com/containermind/a-new-era-of-container-cluster-management-with-kubernetes-cd0b804e1409)) to be more transparent.
+
+["Kubernetes has implemented almost all the container cluster management features of Omega and added more advanced features with best-of-breed ideas and practices from the community."](https://medium.com/containermind/a-new-era-of-container-cluster-management-with-kubernetes-cd0b804e1409)  Kubernetes seems to rely heavily on CoreOS technologies like [etcd](https://github.com/coreos/etcd) and [flannel](https://github.com/coreos/flannel), embracing a strategy of cherry-picking mature open-source technologies and corralling them into a coherent framework.
+
+Kubernetes exists to bring the objects it has been asked to create to life, to control them, scale them, and ultimately reap them when their time has come and release their resources to new processes.
+
+Kubernetes embraces the master-slave pattern, and a [control-plane](https://en.wikipedia.org/wiki/Control_plane) abstraction.
 
 ### Pods
 
 Jobs in Borg were vectors of tasks.  If a task died or completed, the vector became sparse, and individual tasks couldn't be managed or re-evaluated.
 
+Kubernetes introduces the concept of a *pod*, which is it's key unit of scheduling.  A pod is a resource envelop around a collection of containers, storage and a shared (virtual) network.  A pod has a *specification* that determines how it will be executed.
+
+Pods make it dramatically easier to launch collections of containers together, mitigating the "one process per container" principle.  This includes side-car containers and proxies for monitoring individual containers.
+
+#### Pods come and go
+
+["Pods are mortal."](https://kubernetes.io/docs/tutorials/kubernetes-basics/expose-intro/)  Pods follow a defined life-cycle:
+
+- Pending
+- Running
+- Starting
+- Succeeded
+- Failed
+- Unknown
+
+#### Communication between Pods
+
+Containers within a pod share an IP address and port space, and so they can communicate with each other via localhost, or even via IPC.  Pods can share storage space, so two containers can write to a shared log file.
+
+## Coordination and etcd
+
+"Clusters are usually built from a large collection of machines with the ability to run any workload at any given time. In order for a cluster to perform at high levels of efficiency, we need to distribute workloads appropriately across all machines in the cluster.  Then clusters need a way of coordinating with each other.
+
+For example a job scheduler needs to notify a machine that it has work to do. Once that work has been completed machines may need to communicate that fact to some other component in the cluster. A distributed system needs a reliable coordination mechanism, so it’s important that this communication happen in a timely and reliable manner to keep everything running smoothly. In essence something has to manage the state of the cluster – the source of truth.
+
+This is where etcd comes in."
+
+- https://thenewstack.io/about-etcd-the-distributed-key-value-store-used-for-kubernetes-googles-cluster-container-manager/
+
+etcd is the core system for coordination in Kubernetes
+
+- https://mysqlhighavailability.com/good-leaders-are-game-changers-raft-paxos/
+
+## Nodes
+
+A node (also "worker" or "minion") is a "machine" (bare-metal? VM more likely?) where workers are deployed.  A node runs a container runtime like Docker.  Containers live on nodes.
+
+### Kublets
+
+A kublet is the direct descendant of a borglet.  Kubernets -> *kub*let, Borg -> *borg*let.  Kublet's serve the same purpose, starting and stopping and controlling pods as directed by the control plane.
+
+### Kube Proxy
+
+A network proxy and load-balancer that sits on the node.  Consumers of the pods services (HTTP requests for example), are channeled through the proxy.  Containers can expose external IPs directly through.
+
+### cAdvisor
+
+A monitoring agent that lives on nodes.
+
 ### Services
 
-Kubernetes supports naming and load balancing using the service abstraction: a service has a name and maps to a dynamic set of pods defined by a label selector.
+Borg's purpose as a cluster scheduler is to ["manage the lifecycles of tasks and machines"](https://kubernetes.io/blog/2015/04/borg-predecessor-to-kubernetes), but to carry this out, the Borg teams had to construct a whole range of applications, including naming and load-balancing.  
+
+Kubernetes uses a service abstraction to encapsulate these: a service has a name and maps to a dynamic set of pods defined by a label selector.
+
+["A Service in Kubernetes is an abstraction which defines a logical set of Pods and a policy by which to access them - sometimes called a micro-service."](https://kubernetes.io/docs/tutorials/kubernetes-basics/expose-intro/).
+
+The set of pods in a service are usually defined by a label-selector. Obvious examples of 
+
+#### Service Catalog
+
+Kubernetes can wrap other services, for example a message bus, and manage them as though they were a part of an existing service. (?)  Possibly that extends to 
+
+### Controllers
+
+Controllers are a concept that encapsulate the actual orchestration of pods within a cluster.  Controllers are ["a reconciliation loop that drive actual cluster state towards a desired configuration."](https://en.wikipedia.org/wiki/Kubernetes)
+
+There isn't one controller that does it all.  There are a few different kinds of controllers:
+
+- *Replication Controllers* - Scales and replicates pods across a cluster
+- *DaemonSet controllers* - Ensures only one pod runs on each machine (?)
+- *Job Controllers* - Runs pods to completion, for batch jobs
 
 ### Labels and Label Selectors
 
 Labels selectors also address the lack of fidelity in a Borg task.  Deleting a particular or modifying a pod can be accomplish using selectors, instead of using a task.
 
-A pod might have the labels "role=frontend" and "stage=production",
+A pod might have the labels "*role=frontend*" and "*stage=production*",
 indicating that this container is serving as a production
 front-end instance.
 
@@ -203,10 +282,63 @@ Labels can be used for a variety of purposes, for example load balancing, and fo
 
 - https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/44843.pdf
 
-- *Object metadeta* - object name, UID, version, labels
+- *Object metadeta* - ["persistent entities in the Kubernetes system"](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/) object name, UID, version, labels
 - *Specification or Spec* - the desired state of the object
 - *Status* - read-only information about current state of the objects
 
 https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/44843.pdf
 
-TODO: flesh out Kubernetes
+API endpoints generally accept object specifications, and upon receiving them, work to make the system achieve the designed state.
+
+### Objects and Specifications
+
+Objects can describe:
+
+- What applications are running and on which nodes
+- Resources available to those applications
+- Policies around how they should behave, like restart, upgrade and fault-tolerance policies.
+
+"A Kubernetes object is a “record of intent”–once you create the object, the Kubernetes system will constantly work to ensure that object exists. By creating an object, you’re effectively telling the Kubernetes system what you want your cluster’s workload to look like; this is your cluster’s desired state."
+
+- https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/
+
+This is extremely similar to a popular quote about another task management system: ["...[the] terminator is out there. It can’t be bargained with. It can’t be reasoned with. It doesn’t feel pity, or remorse, or fear. And it absolutely will not stop, ever."](http://quotegeek.com/quotes-from-movies/the-terminator/1136/)  This leads me to feel we should trust Kubernetes to accomplish it's tasks, but not to trust that it always operates in our best interests.
+
+Kubernetes objects are defined in specifications, YAML text files:
+
+```
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+```
+
+Specifications resemble [CloudFormation templates](https://aws.amazon.com/cloudformation/aws-cloudformation-templates/), but seem to be simultaneously more abstract (generic objects vs defined AWS services), and more fine-grained (labels).
+
+Specifications must contain the following fields:
+
+- *apiVerion* - of Kubernetes API
+- *type* - the type of object
+- *metaData* - about the object
+- *spec* - specifics about the object, which varies depending on the type
+
+Kubernetes accepts specs via it's API, or directly from kubectl.
+
+```
+kubectl create -f https://k8s.io/docs/user-guide/nginx-deployment.yaml --record
+```

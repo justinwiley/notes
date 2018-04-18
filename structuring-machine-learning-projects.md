@@ -56,7 +56,6 @@ Examples of common parameters in real-life:
     + Dev set isn't performing as well as initial model: regularization, more data
 - Some knobs like stopping training early affect several stages, so are not as orthogonal
 
-
 ### Choosing ML Project Goals
 
 ### Metrics

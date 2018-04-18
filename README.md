@@ -6,7 +6,9 @@ A work-in-progress, there may be spelling, grammatical and factual errors of eve
 
 *All suggestions / contributions welcome!*
 
-## Architecture
+## Google Cloud Architecture
+
+- [From Borg to Omega to Kubernetes](from-borg-to-omega-to-kubernetes.md)
 
 ## Machine Learning
 
