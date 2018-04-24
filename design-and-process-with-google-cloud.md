@@ -417,7 +417,56 @@ Business issue: User experience is being impacted by the thumbnail conversion pr
 
 ## Data Layer Design
 
+### Classifying and Characterizing User's Interest in Data Layer
+
+- Users care about integrity
+- Users don't distinguish between data-loss, corruption and extended unavailability
+
+### What transaction properties are required?
+
+- CAP, consistency, availability, partition tolerance - pick 2
+    + Availability:
+        * BASE, basically available, soft state, eventually consistent
+    + Consistency
+        * ACID, atomic, consistent, isolation, durability
+
+### What are the data-consistency requirements?
+
+Google Cloud Storage, two options:
+
+- Strong global consistency
+- Eventual consistency
+
+### Data Migration
+
+- console, drag and drop
+- gsutil, GCloud and AWS S3 buckets
+- JSON api
+- Google Cloud Transfer service
+- Google Transfer Appliance
+
 ## Presentation Layer Design
+
+Presentation layer has to do with flow of data through the system, between user, business logic and storage services.  I.e. the network.
+
+```
+Less distributed <------> More distributed
+Low latency               More fault tolerance
+```
+
+### Controlling Location - Load-balancers
+
+Location of resources is significant.
+
+| Transfer | Time |
+| ------------- | ------------- |
+| 2kb on 1 Gbps network           | 0.002 ms |
+| Round trip within datacenter    | 0.5 ms |
+| CA -> Netherlands -> CA         | 150ms |
+| 3 round-trips CA->N->CA         | 1 second |
+| 1000 round trips in data center | 1 second |
+
+Load-balancing provides control over location and scale.
 
 ## Design for Resiliency, Scalability, and Disaster Recovery
 
